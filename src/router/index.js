@@ -47,13 +47,16 @@ export const constantRoutes = [
     path: '/',
     component: Layout,
     redirect: '/dashboard',
-    children: [{
-      path: 'dashboard',
-      name: 'Dashboard',
-      component: () => import('@/views/dashboard/index'),
-      meta: { title: 'Dashboard', icon: 'dashboard' }
-    }]
+    children: [
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: () => import('@/views/dashboard/index'),
+        meta: { title: 'Dashboard', icon: 'dashboard' }
+      },
+    ]
   },
+
 
   {
     path: '/example',
@@ -86,6 +89,19 @@ export const constantRoutes = [
         name: 'Form',
         component: () => import('@/views/form/index'),
         meta: { title: 'Form', icon: 'form' }
+      }
+    ]
+  },
+
+  {
+    path: '/comic',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'Comic',
+        component: () => import('@/views/comic/index'),
+        meta: { title: '漫画管理', icon: 'dashboard' }
       }
     ]
   },
