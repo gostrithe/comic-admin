@@ -58,6 +58,19 @@ export const constantRoutes = [
   },
 
   {
+    path: '/homeData',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'HomeData',
+        component: () => import('@/views/homeData/index'),
+        meta: { title: '首页展示管理', icon: 'dashboard' }
+      }
+    ]
+  },
+
+  {
     path: '/comic',
     component: Layout,
     children: [
