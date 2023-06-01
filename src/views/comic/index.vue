@@ -2,7 +2,7 @@
   <div class="comic">
     <h1 class="title">漫画列表</h1>
     <el-table :data="comicList" class="table" style="width: 100%">
-      <el-table-column prop="id" label="ID" />
+      <el-table-column prop="comicId" label="ID" />
       <el-table-column prop="cover" label="封面">
         <template slot-scope="scope">
           <img
@@ -12,17 +12,11 @@
           >
         </template>
       </el-table-column>
-      <el-table-column prop="title" label="漫画名称" />
+      <el-table-column prop="comicName" label="漫画名称" />
       <el-table-column prop="author" label="作者" />
-      <el-table-column prop="type" label="类型" />
-      <el-table-column prop="description" label="描述" />
-      <el-table-column prop="status" label="状态" />
-      <el-table-column label="最新章节">
-        <template slot-scope="scope">
-          <div>第{{ scope.row.chapters.lastest.chapter }}话</div>
-          <div>{{ scope.row.chapters.lastest.desc }}</div>
-        </template>
-      </el-table-column>
+      <el-table-column prop="type" :formatter="(row, column, cellValue)=>cellValue.join('、')" label="类型" />
+      <el-table-column prop="remark" label="描述" />
+      <el-table-column prop="detail" label="详情" />
       <el-table-column align="center" label="操作" fixed="right" width="230">
         <template slot-scope="scope">
           <div class="operation-col">
@@ -35,7 +29,7 @@
               class="edit-btn"
               type="text"
               @click="moreDetail(scope.row)"
-            >更多详情</el-button>
+            >章节内容</el-button>
             <el-popconfirm
               confirm-button-text="好的"
               cancel-button-text="不用了"
@@ -64,16 +58,26 @@
       <div class="comic-edit">
         <el-form ref="form" :model="form" label-width="80px">
           <el-form-item label="漫画名称">
-            <el-input v-model="form.name" />
+            <el-input v-model="form.comicName" />
           </el-form-item>
           <el-form-item label="作者">
             <el-input v-model="form.author" />
           </el-form-item>
-          <el-form-item label="状态">
-            <el-select v-model="form.status">
-              <el-option label="连载中" value="1" />
-              <el-option label="已完结" value="2" />
+          <el-form-item label="类型">
+            <el-select v-model="form.type" multiple placeholder="请选择">
+              <el-option
+                v-for="item in typeOptions"
+                :key="item.typeId"
+                :label="item.typeName"
+                :value="item.typeName"> 
+              </el-option>
             </el-select>
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input v-model="form.remark" />
+          </el-form-item>
+          <el-form-item label="详情">
+            <el-input type="textarea" :rows="2" v-model="form.detail" />
           </el-form-item>
           <el-form-item label="封面图片">
             <el-upload :action="uploadUrl" :on-success="handleUploadSuccess">
@@ -96,29 +100,31 @@
 
 <script>
 import _ from 'lodash'
+import {getComics, delComic, editComic, getTypes} from '../../api/table'
 
 export default {
   name: 'Comic',
   data() {
     return {
+      typeOptions: [],
       drawer: false,
       comicList: [
-        {
-          id: '777',
-          title: '海贼王',
-          author: '尾田',
-          type: '热血',
-          cover:
-            'https://c-ssl.duitang.com/uploads/item/201607/01/20160701125240_zu43t.jpeg',
-          description: '小丑王巴基与他的宝藏。。。',
-          status: '完结',
-          chapters: {
-            lastest: {
-              chapter: 2222,
-              desc: '我是小丑王。。。'
-            }
-          }
-        }
+        // {
+        //   id: '777',
+        //   title: '海贼王',
+        //   author: '尾田',
+        //   type: '热血',
+        //   cover:
+        //     'https://c-ssl.duitang.com/uploads/item/201607/01/20160701125240_zu43t.jpeg',
+        //   description: '小丑王巴基与他的宝藏。。。',
+        //   status: '完结',
+        //   chapters: {
+        //     lastest: {
+        //       chapter: 2222,
+        //       desc: '我是小丑王。。。'
+        //     }
+        //   }
+        // }
       ],
       form: {
         id: '',
@@ -137,13 +143,20 @@ export default {
     moreDetail() {
 
     },
-    handleClose() {},
+    handleClose() {
+      this.drawer = false
+    },
     getComicList() {
-      // fetchComicList().then(res => {
-      //   this.comicList = res.data
-      // })
+      getComics().then(res => {
+        console.log(res)
+        this.comicList = res
+      })
     },
     editComic(row) {
+      getTypes().then(res=>{
+        this.typeOptions = res
+      })
+
       this.drawer = true
       const rowCopy = _.cloneDeep(row)
       this.form = rowCopy
@@ -151,14 +164,13 @@ export default {
       // 编辑漫画操作
     },
     deleteComic(row) {
-      // deleteComic(row.id).then(() => {
-      //   this.getComicList()
-      // })
-
-      this.$notify({
-        title: '删除提示',
-        message: '删除成功',
-        type: 'warning'
+      delComic(row.comicId).then(() => {
+        this.getComicList()
+        this.$notify({
+          title: '删除提示',
+          message: '删除成功',
+          type: 'warning'
+        })
       })
     },
     handleUploadSuccess(response, file) {
@@ -167,10 +179,9 @@ export default {
     submitForm() {
       this.$refs.form.validate((valid) => {
         if (valid) {
-          // updateComic(this.form).then(() => {
-          //     this.$message.success('漫画信息更新成功')
-          // })
+          editComic(this.form.comicId, this.form).then((res) => { this.$message.success('漫画信息更新成功') })
 
+          this.getComicList()
           this.drawer = false
 
           const h = this.$createElement

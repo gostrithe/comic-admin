@@ -2,8 +2,8 @@
   <div class="comic-type">
     <el-button type="primary" class="add-btn" @click="handleAdd">新增类型</el-button>
     <el-table :data="typeList" style="width: 100%">
-      <el-table-column prop="id" label="类型ID"></el-table-column>
-      <el-table-column prop="name" label="类型名称"></el-table-column>
+      <el-table-column prop="typeId" label="类型ID"></el-table-column>
+      <el-table-column prop="typeName" label="类型名称"></el-table-column>
       <el-table-column label="操作">
         <template slot-scope="scope">
           <el-button type="primary" size="small" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
@@ -13,8 +13,8 @@
     </el-table>
     <el-dialog :visible.sync="dialogVisible" :title="dialogTitle" :before-close="handleClose">
       <el-form :model="currentType" label-width="80px">
-        <el-form-item label="类型名称" prop="name">
-          <el-input v-model="currentType.name" autocomplete="off"></el-input>
+        <el-form-item label="类型名称" prop="typeName">
+          <el-input v-model="currentType.typeName" autocomplete="off"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -26,28 +26,29 @@
 </template>
 
 <script>
+import { getTypes, delType, editType, addType } from '../../api/table'
 export default {
   data() {
     return {
-      typeList: [
-        { id: '1', name: '热血' },
-        { id: '2', name: '冒险' },
-        { id: '3', name: '悬疑' },
-        { id: '4', name: '科幻' },
-        { id: '5', name: '恋爱' },
-      ],
+      typeList: [],
       currentType: {
-        id: '',
-        name: ''
+        typeId: '',
+        typeName: ''
       },
       dialogVisible: false,
       dialogTitle: '编辑类型'
     }
   },
+  mounted() {
+    getTypes().then(res => {
+      console.log('res', res)
+      this.typeList = res
+    })
+  },
   methods: {
     handleAdd() {
       this.dialogTitle = '新增类型'
-      this.currentType = { id: '', name: '' }
+      this.currentType = { typeId: this.typeList.length + 1, typeName: '' }
       this.dialogVisible = true
     },
     handleEdit(index, row) {
@@ -56,15 +57,20 @@ export default {
       this.dialogVisible = true
     },
     handleDelete(index, row) {
-      this.$confirm(`确认删除类型 ${row.name} 吗？`, '提示', {
+      this.$confirm(`确认删除类型 ${row.typeName} 吗？`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.typeList.splice(index, 1)
-        this.$message({
-          type: 'success',
-          message: '删除成功！'
+        delType(row.typeId).then(() => {
+          this.$message({
+            type: 'success',
+            message: '删除成功！'
+          })
+          getTypes().then(res => {
+            console.log('res', res)
+            this.typeList = res
+          })
         })
       }).catch(() => {})
     },
@@ -76,19 +82,36 @@ export default {
         .catch(_ => {})
     },
     handleSave() {
-      const { id, name } = this.currentType
-      if (!name) {
+      const { typeId, typeName } = this.currentType
+      if (!typeName) {
         this.$message.error('请填写类型名称')
         return
       }
-      if (!id) {
-        this.typeList.push({ id: String(Date.now()), name })
+      if (this.dialogTitle == '编辑类型') {
+        editType(typeId, this.currentType).then(() => {
+          this.$message.success('修改成功')
+          getTypes().then(res => {
+            console.log('res', res)
+            this.typeList = res
+          })
+        })
       } else {
-        const index = this.typeList.findIndex(item => item.id === id)
-        Object.assign(this.typeList[index], {
-          name
+        addType(this.currentType).then(() => {
+          this.$message.success('添加成功')
+          getTypes().then(res => {
+            console.log('res', res)
+            this.typeList = res
+          })
         })
       }
+      // if (!typeId) {
+      //   this.typeList.push({ id: String(Date.now()), name })
+      // } else {
+      //   const index = this.typeList.findIndex(item => item.id === id)
+      //   Object.assign(this.typeList[index], {
+      //     name
+      //   })
+      // }
       this.dialogVisible = false
     }
   }
